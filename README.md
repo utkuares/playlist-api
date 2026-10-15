@@ -2,6 +2,10 @@
 
 A RESTful playlist management API built with Spring Boot. It lets you add, edit, remove, search, sort and reorder songs, and mark favorites.
 
+## Source Code
+
+https://github.com/utkuares/playlist-api
+
 ## Live Demo
 
 - API: https://playlist-api-7h4z.onrender.com/api/songs
@@ -79,3 +83,29 @@ docker run -p 8080:8080 playlist-api
 
 - Data is stored in memory and seeded with sample songs on startup. Changes are lost when the app restarts.
 - The port can be overridden with the `PORT` environment variable (default 8080).
+
+## Design
+
+- Layered architecture: `controller` (REST endpoints), `service` (business logic), `repository` (in-memory storage), `dto` (request/response models), `exception` (global error handling) and `config` (OpenAPI and sample data seeding).
+- Songs are stored in a `ConcurrentHashMap` inside `SongRepository`, so no external database is needed. `DataSeeder` loads 5 sample songs on startup.
+- Request validation uses Bean Validation (`@NotBlank`, `@Positive`, `@Min`).
+- `GlobalExceptionHandler` converts exceptions to a consistent JSON error response.
+- Swagger UI is generated with springdoc-openapi, with descriptions and example values on every endpoint.
+
+## Assumptions
+
+- Positions start at 1 and are unique. When a song is removed, the remaining songs are renumbered.
+- Moving a song to a new position shifts the other songs.
+- `durationSeconds` must be greater than zero. `title`, `artist` and `genre` are required; `album` and `coverUrl` are optional.
+- Search looks at title, artist and album.
+- The genre filter is case-insensitive.
+- Data is kept in memory only, so it resets when the app restarts.
+- No authentication is required.
+
+## Issues Encountered
+
+- **Dockerfile:** IntelliJ created the Dockerfile from a sample template, so I replaced it with a multi-stage Maven + Java 21 build.
+- **Port on Render:** Render assigns the port dynamically, so `server.port` is set to `${PORT:8080}`.
+- **Error responses:** Malformed JSON and invalid ids (e.g. `/api/songs/abc`) first returned Spring's default error format. I added handlers so they return the same JSON error format as other errors.
+- **Free hosting:** Render's free plan sleeps after inactivity, so the first request can be slow.
+- **Git setup:** The project folder was not a Git repository at first, so I initialized it and pushed to GitHub.
